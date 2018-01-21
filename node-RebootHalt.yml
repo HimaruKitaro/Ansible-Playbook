@@ -1,0 +1,51 @@
+- name: Rebot or Halt a node
+  hosts: all
+  gather_facts: false
+  vars: 
+    vReboot: false
+    vShutdown: true
+  become: true
+  tasks:
+    - name: Verify the connection
+      wait_for_connection:
+        delay: 10
+        timeout: 30
+      ignore_errors: true
+      register: connection
+
+    - name: Halt node when Shutdown is set to true
+      block:
+        - name: Halt the machine
+          shell: sleep 2 && shutdown -h now
+          async: 1
+          poll: 0
+          ignore_errors: true
+        - local_action: wait_for host={{ ansible_ssh_host }} port=22 state=drained delay=5
+          become: false
+      when: 
+        - vShutdown
+        - connection.failed is undefined
+
+    - debug: msg="{{ ansible_ssh_host }} - {{ connection.msg }}"
+      when:
+        - vShutdown
+        - connection.failed is defined
+
+    - name: Reboot node when Reboot is set to true   
+      block:
+        - name: Send a reboot command
+          shell: sleep 2 && shutdown -r now
+          async: 1
+          poll: 0
+          ignore_errors: true
+        - local_action: wait_for host={{ ansible_ssh_host }} port=22 state=started delay=30 timeout=60
+          become: false
+        - shell: uptime
+      when: 
+        - vReboot
+        - connection.failed is undefined
+
+    - debug: msg="{{ ansible_ssh_host }} - {{ connection.msg }}"
+      when:
+        - vReboot
+        - connection.failed is defined
