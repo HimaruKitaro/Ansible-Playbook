@@ -1,3 +1,5 @@
+### Written by: Jonathan A.
+---
 - name: Rebot or Halt a node
   hosts: all
   gather_facts: false
@@ -12,7 +14,7 @@
         timeout: 30
       ignore_errors: true
       register: connection
-
+    
     - name: Halt node when Shutdown is set to true
       block:
         - name: Halt the machine
@@ -24,12 +26,12 @@
           become: false
       when: 
         - vShutdown
-        - connection.failed is undefined
+        - not connection.failed
 
     - debug: msg="{{ ansible_ssh_host }} - {{ connection.msg }}"
       when:
         - vShutdown
-        - connection.failed is defined
+        - connection.failed
 
     - name: Reboot node when Reboot is set to true   
       block:
@@ -43,9 +45,11 @@
         - shell: uptime
       when: 
         - vReboot
-        - connection.failed is undefined
+        - not connection.failed
 
     - debug: msg="{{ ansible_ssh_host }} - {{ connection.msg }}"
       when:
         - vReboot
-        - connection.failed is defined
+        - connection.failed
+
+
